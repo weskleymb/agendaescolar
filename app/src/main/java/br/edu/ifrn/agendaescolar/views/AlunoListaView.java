@@ -1,11 +1,14 @@
 package br.edu.ifrn.agendaescolar.views;
 
+import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.view.ContextMenu;
-import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -13,11 +16,11 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
-import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import br.edu.ifrn.agendaescolar.daos.AlunoDao;
 import br.edu.ifrn.agendaescolar.models.Aluno;
 
 public class AlunoListaView extends AppCompatActivity {
@@ -33,20 +36,13 @@ public class AlunoListaView extends AppCompatActivity {
         inicializarComponentes();
         definirEventos();
 
-        Aluno a1 = new Aluno("Pietro", "84999267947", "Rua Doutor Raimundo Verissimo, 108", "http://www.ifrn.edu.br", 8.0);
-        Aluno a2 = new Aluno("Jean", "84988506387", "Rua Djalma Maranhão, 450", "http://www.youtube.com", 2.0);
-        Aluno a3 = new Aluno("Willian", "84999092020", "Rua Nelson Mato, 328", "http://www.ufrn.br", 7.5);
 
-        List<Aluno> alunos = new ArrayList<Aluno>();
 
-        alunos.add(a1);
-        alunos.add(a2);
-        alunos.add(a3);
+        Activity context = this;
+        int layout = android.R.layout.simple_list_item_1;
+        List<Aluno> lista = new AlunoDao().selectAll();
 
-        ArrayAdapter<Aluno> adapter = new ArrayAdapter<Aluno>(
-                this,
-                android.R.layout.simple_list_item_1,
-                alunos);
+        ArrayAdapter<Aluno> adapter = new ArrayAdapter<Aluno>(context, layout, lista);
         lvAlunosLista.setAdapter(adapter);
     }
 
@@ -88,10 +84,37 @@ public class AlunoListaView extends AppCompatActivity {
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
         Aluno aluno = (Aluno) lvAlunosLista.getItemAtPosition(info.position);
         switch(item.getItemId()) {
+            case R.id.item_deletar:
+                //Instrução pra deletar
+                break;
             case R.id.item_site:
                 Intent intentSite = new Intent(Intent.ACTION_VIEW);
                 intentSite.setData(Uri.parse(aluno.getSite()));
                 item.setIntent(intentSite);
+                break;
+            case R.id.item_mapa:
+                Intent intentMapa = new Intent(Intent.ACTION_VIEW);
+                intentMapa.setData(Uri.parse("geo:0,0?q=" + aluno.getEndereco()));
+                item.setIntent(intentMapa);
+                break;
+            case R.id.item_sms:
+                Intent intentSms = new Intent(Intent.ACTION_VIEW);
+                intentSms.setData(Uri.parse("sms:" + aluno.getFone()));
+                item.setIntent(intentSms);
+                break;
+            case R.id.item_ligar:
+                Activity context = AlunoListaView.this;
+                String[] permissions = new String[] {Manifest.permission.CALL_PHONE};
+                int permission = ActivityCompat.checkSelfPermission(context, permissions[0]);
+                int granted = PackageManager.PERMISSION_GRANTED;
+                if (permission != granted) {
+                    int requestCode = 123;
+                    ActivityCompat.requestPermissions(context, permissions, requestCode);
+                } else {
+                    Intent intentLigar = new Intent(Intent.ACTION_CALL);
+                    intentLigar.setData(Uri.parse("tel:" + aluno.getFone()));
+                    item.setIntent(intentLigar);
+                }
                 break;
         }
         return super.onOptionsItemSelected(item);
